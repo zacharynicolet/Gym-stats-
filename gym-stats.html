@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF2E3;
+    --paper-card: #F6E9D4;
+    --ink: #2B1B12;
+    --umber: #6B4226;
+    --umber-soft: #8A6347;
+    --gold: #C98A2E;
+    --gold-deep: #A8681C;
+    --brick: #A8431F;
+    --line: #E2CBA1;
+    --white-warm: #FFFCF6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(107,66,38,0.07) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'Public Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Top nav --- */
+  .tabbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(251, 242, 227, 0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1.5px solid var(--line);
+  }
+  .tabbar-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--paper-card);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+  }
+  .tab {
+    border: none;
+    background: transparent;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--umber);
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: var(--ink);
+    color: var(--white-warm);
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .save-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translate(-50%, 12px);
+    z-index: 50;
+    background: var(--ink);
+    color: var(--white-warm);
+    padding: 12px 14px 12px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100% - 40px);
+    font-size: 13.5px;
+    box-shadow: 0 10px 30px -8px rgba(43,27,18,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  .save-toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  .save-toast button {
+    background: var(--brick);
+    color: var(--white-warm);
+    border: none;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .save-toast button:hover { background: #8f3a1b; }
+
+  .data-header {
+    margin-bottom: 26px;
+  }
+  .data-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(32px, 8vw, 42px);
+    margin: 0;
+    line-height: 1;
+  }
+  .data-header .tagline {
+    margin-top: 10px;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 36px 20px 80px;
+  }
+
+  header {
+    margin-bottom: 34px;
+  }
+
+  .eyebrow-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .today {
+    font-size: 13px;
+    color: var(--umber-soft);
+    font-weight: 500;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(40px, 9vw, 58px);
+    margin: 0;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .underline-swoosh {
+    display: block;
+    width: 168px;
+    height: 14px;
+    margin-top: 6px;
+  }
+
+  .tagline {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--umber);
+    margin-top: 14px;
+  }
+
+  /* --- Log card --- */
+  .log-card {
+    background: var(--white-warm);
+    border-radius: 18px;
+    padding: 26px 22px 22px;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(43,27,18,0.04), 0 12px 28px -14px rgba(107,66,38,0.35);
+    border: 1px solid var(--line);
+  }
+
+  .log-card::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border: 1.5px dashed rgba(168,67,31,0.22);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .log-card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 0 0 18px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--umber);
+    margin-bottom: 6px;
+  }
+
+  input {
+    width: 100%;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 17px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--gold-deep);
+    background: var(--white-warm);
+  }
+
+  .weight-reps-row {
+    display: flex;
+    gap: 12px;
+  }
+  .weight-reps-row .field { flex: 1; }
+
+  button.add-set {
+    width: 100%;
+    margin-top: 4px;
+    background: var(--brick);
+    color: var(--white-warm);
+    border: none;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Public Sans', sans-serif;
+    cursor: pointer;
+    transition: background 120ms ease, transform 80ms ease;
+  }
+  button.add-set:hover { background: #8f3a1b; }
+  button.add-set:active { transform: scale(0.98); }
+
+  .confirm-flash {
+    text-align: center;
+    font-size: 13px;
+    color: var(--gold-deep);
+    font-weight: 600;
+    height: 18px;
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .confirm-flash.show { opacity: 1; }
+
+  /* --- History section --- */
+  .history {
+    margin-top: 44px;
+  }
+
+  .history h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 24px;
+    margin: 0 0 4px;
+  }
+
+  .history .sub {
+    font-size: 14px;
+    color: var(--umber-soft);
+    margin-bottom: 18px;
+  }
+
+  .exercise-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+
+  .pill {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--line);
+    background: var(--white-warm);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--umber);
+    cursor: pointer;
+    font-family: 'Public Sans', sans-serif;
+  }
+  .pill.active {
+    background: var(--ink);
+    color: var(--white-warm);
+    border-color: var(--ink);
+  }
+
+  .detail-card {
+    background: var(--white-warm);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 20px 8px;
+  }
+
+  .detail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .detail-head h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .pr-badge {
+    background: var(--gold);
+    color: var(--white-warm);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .chart-wrap { margin: 10px 0 6px; }
+  .chart-caption {
+    font-size: 12.5px;
+    color: var(--umber-soft);
+    margin: 0 0 14px;
+    line-height: 1.4;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+  }
+  th {
+    text-align: left;
+    font-size: 12px;
+    color: var(--umber-soft);
+    font-weight: 600;
+    padding: 8px 6px;
+    border-bottom: 1.5px solid var(--line);
+  }
+  td {
+    padding: 10px 6px;
+    font-size: 15px;
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  td.del {
+    text-align: right;
+    color: var(--umber-soft);
+    cursor: pointer;
+    font-size: 13px;
+    width: 28px;
+  }
+  td.del:hover { color: var(--brick); }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--umber-soft);
+    font-size: 15px;
+  }
+  .empty-state strong {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .utility-row {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 30px;
+  }
+  .ghost-link {
+    background: none;
+    border: none;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--umber-soft);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .ghost-link:hover { color: var(--brick); }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="tabbar">
+  <div class="tabbar-inner">
+    <span class="wordmark">Gym Stats</span>
+    <div class="tabs">
+      <button class="tab active" data-page="workout" type="button">Workout</button>
+      <button class="tab" data-page="data" type="button">Data</button>
+    </div>
+  </div>
+</nav>
+
+<div class="save-toast" id="saveToast">
+  <span id="saveToastMsg"></span>
+  <button id="saveRetryBtn" type="button">Retry</button>
+</div>
+
+<div class="wrap">
+
+  <section id="page-workout" class="page active">
+
+    <header>
+      <div class="eyebrow-row">
+        <div></div>
+        <div class="today" id="today"></div>
+      </div>
+      <h1>Gym Stats</h1>
+      <svg class="underline-swoosh" viewBox="0 0 168 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 10C24 3 46 2 68 6C90 10 112 4 134 4C146 4 156 6 166 9" stroke="#C98A2E" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <p class="tagline">Every set, logged. Every lift, remembered.</p>
+    </header>
+
+    <section class="log-card">
+      <h2>Log a set</h2>
+      <div class="field">
+        <label for="exercise">Exercise</label>
+        <input id="exercise" type="text" placeholder="e.g. Bench press" list="exercise-list" autocomplete="off">
+        <datalist id="exercise-list"></datalist>
+      </div>
+      <div class="weight-reps-row">
+        <div class="field">
+          <label for="weight">Weight (lb)</label>
+          <input id="weight" type="number" inputmode="decimal" placeholder="135" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label for="reps">Reps</label>
+          <input id="reps" type="number" inputmode="numeric" placeholder="8" min="0" step="1">
+        </div>
+      </div>
+      <button class="add-set" id="addSet">Add set</button>
+      <div class="confirm-flash" id="confirmFlash">Set logged</div>
+    </section>
+
+  </section>
+
+  <section id="page-data" class="page">
+
+    <header class="data-header">
+      <h1 class="data-title">Data</h1>
+      <p class="tagline">See how every lift is trending.</p>
+    </header>
+
+    <section class="history">
+      <div class="sub" id="historySub">Pick an exercise to see how it's trending.</div>
+
+      <div class="exercise-pills" id="exercisePills"></div>
+
+      <div id="detailArea"></div>
+
+      <div class="utility-row">
+        <button class="ghost-link" id="loadSample">Load 3 weeks of sample data</button>
+        <button class="ghost-link" id="clearAll">Clear all data</button>
+      </div>
+    </section>
+
+  </section>
+
+</div>
+
+
+<script>
+  const STORAGE_KEY = 'sets';
+  let allSets = [];
+  let selectedExercise = null;
+  let saveChain = Promise.resolve();
+
+  const todayEl = document.getElementById('today');
+  todayEl.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function showToast(message) {
+    const toast = document.getElementById('saveToast');
+    document.getElementById('saveToastMsg').textContent = message;
+    toast.classList.add('show');
+  }
+
+  function hideToast() {
+    document.getElementById('saveToast').classList.remove('show');
+  }
+
+  async function loadSets() {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const result = await window.storage.get(STORAGE_KEY, false);
+        allSets = result && result.value ? JSON.parse(result.value) : [];
+        return;
+      } catch (e) {
+        // A missing key throws too (that's expected for a first-ever visit),
+        // so only treat it as "no data yet" once we've retried and it still fails.
+        if (attempt < maxAttempts) {
+          await sleep(400 * attempt);
+        } else {
+          allSets = [];
+        }
+      }
+    }
+  }
+
+  // Serializes saves so concurrent calls (e.g. rapid taps) can't race each
+  // other, and retries transient failures instead of silently dropping data.
+  function saveSets() {
+    saveChain = saveChain.then(() => attemptSave());
+    return saveChain;
+  }
+
+  async function attemptSave() {
+    const maxAttempts = 3;
+    const payload = JSON.stringify(allSets);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await window.storage.set(STORAGE_KEY, payload, false);
+        hideToast();
+        return true;
+      } catch (e) {
+        console.error('Storage save attempt failed', attempt, e);
+        if (attempt < maxAttempts) {
+          await sleep(500 * attempt);
+        } else {
+          showToast("Couldn't save your last change — check your connection and tap to retry.");
+          return false;
+        }
+      }
+    }
+  }
+
+  function titleCaseKey(name) {
+    return name.trim().toLowerCase();
+  }
+
+  function niceName(name) {
+    return name.trim().replace(/\s+/g, ' ')
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  async function addSet() {
+    const exerciseInput = document.getElementById('exercise');
+    const weightInput = document.getElementById('weight');
+    const repsInput = document.getElementById('reps');
+
+    const exerciseRaw = exerciseInput.value.trim();
+    const weight = parseFloat(weightInput.value);
+    const reps = parseInt(repsInput.value, 10);
+
+    if (!exerciseRaw || isNaN(weight) || isNaN(reps)) {
+      exerciseInput.style.borderColor = !exerciseRaw ? '#A8431F' : '';
+      weightInput.style.borderColor = isNaN(weight) ? '#A8431F' : '';
+      repsInput.style.borderColor = isNaN(reps) ? '#A8431F' : '';
+      return;
+    }
+    exerciseInput.style.borderColor = '';
+    weightInput.style.borderColor = '';
+    repsInput.style.borderColor = '';
+
+    const entry = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      exercise: niceName(exerciseRaw),
+      weight,
+      reps,
+      date: new Date().toISOString()
+    };
+
+    allSets.push(entry);
+    await saveSets();
+
+    weightInput.value = '';
+    repsInput.value = '';
+    exerciseInput.focus();
+
+    selectedExercise = titleCaseKey(entry.exercise);
+
+    const flash = document.getElementById('confirmFlash');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 1400);
+
+    render();
+  }
+
+  async function deleteSet(id) {
+    allSets = allSets.filter(s => s.id !== id);
+    await saveSets();
+    render();
+  }
+
+  function groupedByExercise() {
+    const groups = {};
+    allSets.forEach(s => {
+      const key = titleCaseKey(s.exercise);
+      if (!groups[key]) groups[key] = { name: s.exercise, sets: [] };
+      groups[key].sets.push(s);
+    });
+    Object.values(groups).forEach(g => g.sets.sort((a, b) => new Date(a.date) - new Date(b.date)));
+    return groups;
+  }
+
+  function estimate1RM(weight, reps) {
+    // Epley formula: more weight OR more reps at the same weight both raise this number.
+    return weight * (1 + reps / 30);
+  }
+
+  function buildSparkline(sets) {
+    const w = 560, h = 120, pad = 24;
+    if (sets.length === 1) {
+      const cx = w / 2, cy = h / 2;
+      const e1rm = Math.round(estimate1RM(sets[0].weight, sets[0].reps));
+      return `<svg width="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+        <circle cx="${cx}" cy="${cy}" r="6" fill="#A8431F"/>
+        <text x="${cx}" y="${cy - 16}" text-anchor="middle" font-family="Public Sans, sans-serif" font-size="13" font-weight="600" fill="#2B1B12">~${e1rm} lb</text>
+      </svg>`;
+    }
+    const scores = sets.map(s => estimate1RM(s.weight, s.reps));
+    const min = Math.min(...scores), max = Math.max(...scores);
+    const range = (max - min) || 1;
+    const stepX = (w - pad * 2) / (sets.length - 1);
+    const points = sets.map((s, i) => {
+      const score = estimate1RM(s.weight, s.reps);
+      const x = pad + i * stepX;
+      const y = h - pad - ((score - min) / range) * (h - pad * 2);
+      return { x, y, score };
+    });
+    const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+    const dots = points.map((p, i) => {
+      const isLast = i === points.length - 1;
+      return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isLast ? 5 : 3.5}" fill="${isLast ? '#A8431F' : '#C98A2E'}"/>`;
+    }).join('');
+    return `<svg width="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+      <path d="${path}" fill="none" stroke="#C98A2E" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      <text x="${pad}" y="14" font-family="Public Sans, sans-serif" font-size="11" fill="#8A6347">~${Math.round(max)} lb</text>
+      <text x="${pad}" y="${h - 8}" font-family="Public Sans, sans-serif" font-size="11" fill="#8A6347">~${Math.round(min)} lb</text>
+    </svg>`;
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function render() {
+    const groups = groupedByExercise();
+    const keys = Object.keys(groups).sort((a, b) => groups[a].name.localeCompare(groups[b].name));
+
+    // datalist
+    const datalist = document.getElementById('exercise-list');
+    datalist.innerHTML = keys.map(k => `<option value="${groups[k].name}">`).join('');
+
+    const pillsEl = document.getElementById('exercisePills');
+    const detailArea = document.getElementById('detailArea');
+    const sub = document.getElementById('historySub');
+
+    if (keys.length === 0) {
+      pillsEl.innerHTML = '';
+      sub.textContent = "Pick an exercise to see how it's trending.";
+      detailArea.innerHTML = `<div class="empty-state">
+        <strong>No sets yet</strong>
+        Log your first one above and it'll show up here.
+      </div>`;
+      return;
+    }
+
+    if (!selectedExercise || !groups[selectedExercise]) {
+      selectedExercise = keys[keys.length - 1];
+    }
+
+    sub.textContent = `${keys.length} exercise${keys.length > 1 ? 's' : ''} tracked, ${allSets.length} set${allSets.length > 1 ? 's' : ''} logged.`;
+
+    pillsEl.innerHTML = keys.map(k => {
+      const active = k === selectedExercise ? 'active' : '';
+      return `<button class="pill ${active}" data-key="${k}">${groups[k].name}</button>`;
+    }).join('');
+
+    pillsEl.querySelectorAll('.pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedExercise = btn.dataset.key;
+        render();
+      });
+    });
+
+    const g = groups[selectedExercise];
+    const best = g.sets.reduce((a, b) => (estimate1RM(b.weight, b.reps) > estimate1RM(a.weight, a.reps) ? b : a), g.sets[0]);
+    const rows = [...g.sets].reverse().map(s => `
+      <tr>
+        <td>${formatDate(s.date)}</td>
+        <td>${s.weight} lb</td>
+        <td>${s.reps}</td>
+        <td class="del" data-id="${s.id}">&times;</td>
+      </tr>
+    `).join('');
+
+    detailArea.innerHTML = `
+      <div class="detail-card">
+        <div class="detail-head">
+          <h3>${g.name}</h3>
+          <span class="pr-badge">Best: ${best.weight} lb &times; ${best.reps}</span>
+        </div>
+        <div class="chart-wrap">${buildSparkline(g.sets)}</div>
+        <p class="chart-caption">Trend line is estimated one-rep max, so more reps at the same weight still counts as progress.</p>
+        <table>
+          <thead><tr><th>Date</th><th>Weight</th><th>Reps</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+
+    detailArea.querySelectorAll('.del').forEach(cell => {
+      cell.addEventListener('click', () => deleteSet(cell.dataset.id));
+    });
+  }
+
+  function generateSampleSets() {
+    // Builds 3 weeks of a realistic Mon/Wed/Fri push-pull-legs style program
+    // ending today, with gentle progressive overload week over week.
+    const plan = {
+      1: [ // Monday: squat + bench
+        { exercise: 'Squat', base: 135, weeklyInc: 10, sets: [8, 7, 6] },
+        { exercise: 'Bench Press', base: 95, weeklyInc: 5, sets: [8, 8, 6] }
+      ],
+      3: [ // Wednesday: deadlift + overhead press
+        { exercise: 'Deadlift', base: 155, weeklyInc: 10, sets: [5, 5, 4] },
+        { exercise: 'Overhead Press', base: 65, weeklyInc: 5, sets: [8, 7, 6] }
+      ],
+      5: [ // Friday: squat + bench again, slightly different rep scheme
+        { exercise: 'Squat', base: 135, weeklyInc: 10, sets: [6, 6, 5] },
+        { exercise: 'Bench Press', base: 95, weeklyInc: 5, sets: [6, 6, 5] }
+      ]
+    };
+
+    const entries = [];
+    const today = new Date();
+    today.setHours(9, 0, 0, 0);
+
+    for (let dayIndex = 0; dayIndex <= 20; dayIndex++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (20 - dayIndex));
+      const dow = date.getDay();
+      const sessions = plan[dow];
+      if (!sessions) continue;
+
+      const weekIndex = Math.floor(dayIndex / 7);
+
+      sessions.forEach(session => {
+        const weight = session.base + weekIndex * session.weeklyInc;
+        session.sets.forEach((reps, setIdx) => {
+          const wobble = (Math.random() < 0.3) ? (Math.random() < 0.5 ? -1 : 0) : 0;
+          const setTime = new Date(date);
+          setTime.setMinutes(setTime.getMinutes() + setIdx * 4);
+          entries.push({
+            id: setTime.getTime() + '-' + session.exercise.slice(0,3) + '-' + setIdx + '-' + Math.random().toString(36).slice(2,5),
+            exercise: session.exercise,
+            weight: weight,
+            reps: Math.max(1, reps + wobble),
+            date: setTime.toISOString()
+          });
+        });
+      });
+    }
+    return entries;
+  }
+
+  async function loadSampleData() {
+    const sample = generateSampleSets();
+    allSets = allSets.concat(sample);
+    await saveSets();
+    selectedExercise = 'squat';
+    render();
+  }
+
+  async function clearAllData() {
+    if (!confirm("Clear every logged set? This can't be undone.")) return;
+    allSets = [];
+    await saveSets();
+    selectedExercise = null;
+    render();
+  }
+
+  function switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.toggle('active', p.id === 'page-' + page);
+    });
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.page === page);
+    });
+  }
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => switchPage(t.dataset.page));
+  });
+
+  document.getElementById('saveRetryBtn').addEventListener('click', () => {
+    hideToast();
+    saveSets();
+  });
+
+  document.getElementById('loadSample').addEventListener('click', loadSampleData);
+  document.getElementById('clearAll').addEventListener('click', clearAllData);
+
+  document.getElementById('addSet').addEventListener('click', addSet);
+  [document.getElementById('exercise'), document.getElementById('weight'), document.getElementById('reps')].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') addSet(); });
+  });
+
+  (async function init() {
+    await loadSets();
+    render();
+  })();
+</script>
+</body>
+</html>
